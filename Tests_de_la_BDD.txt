@@ -1,0 +1,16 @@
+DECLARE
+BEGIN
+	NouvelleActivite('Foot');
+	NouvelleActivite('Rugby');
+	NouvelleActivite('Boxe');
+	SuppressionActivite('Boxe');
+	AjoutSemaine(TO_DATE('12/11/2015', 'DD/MM/YYYY'));
+	AjoutSemaine(TO_DATE('19/11/2015', 'DD/MM/YYYY'));
+	AjoutActiviteCalendrier('Foot', TO_DATE('12/11/2015', 'DD/MM/YYYY'), 'DebutMatin');
+	AjoutActiviteCalendrier('Rugby', TO_DATE('13/11/2015', 'DD/MM/YYYY'), 'DebutApresMidi');
+	ModifActiviteCalendrier('Rugby', TO_DATE('12/11/2015', 'DD/MM/YYYY'), 'DebutMatin');
+	SuppressionActiviteCalendrier('Foot', TO_DATE('13/11/2015', 'DD/MM/YYYY'), 'DebutApresMidi');
+    AffichageSemaine(TO_DATE('12/11/2015', 'DD/MM/YYYY'));
+	AjoutSemaine(TO_DATE('12/11/2023', 'DD/MM/YYYY'));
+	SuppressionSemaine(TO_DATE('12/11/2023', 'DD/MM/YYYY'));
+end;

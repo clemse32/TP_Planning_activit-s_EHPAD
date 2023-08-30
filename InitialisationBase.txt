@@ -1,0 +1,108 @@
+CREATE TABLE Jour(
+   NumJour INT,
+   PRIMARY KEY(NumJour)
+);
+
+CREATE TABLE Mois(
+   NumMois INT,
+   PRIMARY KEY(NumMois)
+);
+
+CREATE TABLE Annee(
+   NumAnnee INT,
+   PRIMARY KEY(NumAnnee)
+);
+
+CREATE TABLE TrancheHoraire(
+   Id_Horaire INT,
+   NomHoraire VARCHAR(50),
+   PRIMARY KEY(Id_Horaire)
+);
+
+CREATE TABLE Activite(
+   Id_Activite INT,
+   NomActivite VARCHAR(50) NOT NULL,
+   PRIMARY KEY(Id_Activite)
+);
+
+CREATE TABLE Journee(
+   Id_Journee INT,
+   NumAnnee INT NOT NULL,
+   NumMois INT NOT NULL,
+   NumJour INT NOT NULL,
+   PRIMARY KEY(Id_Journee),
+   FOREIGN KEY(NumAnnee) REFERENCES Annee(NumAnnee),
+   FOREIGN KEY(NumMois) REFERENCES Mois(NumMois),
+   FOREIGN KEY(NumJour) REFERENCES Jour(NumJour)
+);
+
+CREATE TABLE TableauHebdomadaire(
+   Id_TableauHebdomadaire INT,
+   PRIMARY KEY(Id_TableauHebdomadaire)
+);
+
+CREATE TABLE Composer(
+   Id_Horaire INT,
+   Id_Activite INT,
+   Id_Journee INT,
+   PRIMARY KEY(Id_Horaire, Id_Activite, Id_Journee),
+   FOREIGN KEY(Id_Horaire) REFERENCES TrancheHoraire(Id_Horaire),
+   FOREIGN KEY(Id_Activite) REFERENCES Activite(Id_Activite),
+   FOREIGN KEY(Id_Journee) REFERENCES Journee(Id_Journee)
+);
+
+CREATE TABLE Contenir(
+   Id_Journee INT,
+   Id_TableauHebdomadaire INT,
+   PRIMARY KEY(Id_Journee, Id_TableauHebdomadaire),
+   FOREIGN KEY(Id_Journee) REFERENCES Journee(Id_Journee),
+   FOREIGN KEY(Id_TableauHebdomadaire) REFERENCES TableauHebdomadaire(Id_TableauHebdomadaire)
+);
+
+CREATE SEQUENCE SEQ_JOURNEE
+    START WITH 1
+    INCREMENT BY 1
+    NOCACHE
+    NOCYCLE;
+
+CREATE SEQUENCE SEQ_TABLEAU
+    START WITH 1
+    INCREMENT BY 1
+    NOCACHE
+    NOCYCLE;
+
+CREATE SEQUENCE SEQ_ACTIVITE
+    START WITH 2
+    INCREMENT BY 1
+    NOCACHE
+    NOCYCLE;
+CREATE OR REPLACE PROCEDURE RemplirTablesJourMoisAnnee AS
+BEGIN
+
+   FOR i IN 1..31 LOOP
+      INSERT INTO Jour (NumJour)
+      VALUES (i);
+   END LOOP;
+
+   FOR i IN 1..12 LOOP
+      INSERT INTO Mois (NumMois)
+      VALUES (i);
+   END LOOP;
+
+   FOR i IN 2000..2100 LOOP
+      INSERT INTO Annee (NumAnnee)
+      VALUES (i);
+   END LOOP;
+
+   INSERT INTO TrancheHoraire (Id_Horaire, NomHoraire) VALUES (1, 'DebutMatin');
+   INSERT INTO TrancheHoraire (Id_Horaire, NomHoraire) VALUES (2, 'FinMatin');
+   INSERT INTO TrancheHoraire (Id_Horaire, NomHoraire) VALUES (3, 'DebutApresMidi');
+   INSERT INTO TrancheHoraire (Id_Horaire, NomHoraire) VALUES (4, 'FinApresMidi');
+
+   INSERT INTO Activite (Id_Activite, NomActivite) VALUES (1, 'Libre');
+END RemplirTablesJourMoisAnnee;
+
+DECLARE
+BEGIN
+    RemplirTablesJourMoisAnnee;
+END;

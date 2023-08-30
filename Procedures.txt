@@ -1,0 +1,233 @@
+-- NouvelleActivite: Ajout d'une nouvelle activité
+CREATE OR REPLACE PROCEDURE NouvelleActivite(p_nom VARCHAR2) AS
+BEGIN
+   INSERT INTO Activite(Id_Activite, NomActivite) VALUES (SEQ_ACTIVITE.NextVal, p_nom);
+END NouvelleActivite;
+
+-- SuppressionActivite: Suppression d'une activité
+CREATE OR REPLACE PROCEDURE SuppressionActivite(p_nom VARCHAR2) AS
+    v_idActivite INT;
+BEGIN
+    select Id_Activite into v_idActivite FROM Activite where NomActivite = p_nom;
+    DELETE FROM Composer WHERE Id_Activite = v_idActivite;
+   DELETE FROM Activite WHERE NomActivite = p_nom;
+END SuppressionActivite;
+
+
+CREATE OR REPLACE PROCEDURE AjoutSemaine(p_dateLundi DATE) AS
+   v_id_tableau NUMBER;
+   v_id_journee NUMBER;
+   v_date_courante DATE;
+
+   v_Jour INT;
+   v_Mois INT;
+   v_Annee INT;
+BEGIN
+   
+   SELECT SEQ_TABLEAU.NEXTVAL INTO v_id_tableau FROM DUAL;
+   INSERT INTO TableauHebdomadaire (Id_TableauHebdomadaire) VALUES (v_id_tableau);
+
+
+   
+   FOR i IN 0..6 LOOP
+      v_date_courante := p_dateLundi + i;
+	v_Jour := EXTRACT(DAY FROM v_date_courante);
+	v_Mois := EXTRACT(MONTH FROM v_date_courante);
+	v_Annee := EXTRACT(YEAR FROM v_date_courante);
+
+      SELECT SEQ_JOURNEE.NEXTVAL INTO v_id_journee FROM DUAL;
+      INSERT INTO Journee (Id_Journee, NumAnnee, NumMois, NumJour)
+      VALUES (v_id_journee, v_Annee, v_Mois, v_Jour);
+
+      INSERT INTO Contenir (Id_Journee, Id_TableauHebdomadaire) VALUES (v_id_journee, v_id_tableau);
+   END LOOP;
+
+END AjoutSemaine;
+
+
+CREATE OR REPLACE PROCEDURE SuppressionSemaine(p_dateLundi DATE) AS
+   v_id_tableau NUMBER;
+   v_dateDimanche DATE;
+BEGIN
+    v_dateDimanche := p_dateLundi + 6;
+    
+   
+   SELECT Id_TableauHebdomadaire INTO v_id_tableau
+   FROM Journee, Contenir
+   WHERE NumAnnee = EXTRACT(YEAR FROM p_dateLundi)
+     AND NumMois = EXTRACT(MONTH FROM p_dateLundi)
+     AND NumJour = EXTRACT(DAY FROM p_dateLundi)
+     AND Journee.Id_Journee = Contenir.Id_Journee
+     AND Id_TableauHebdomadaire in (SELECT Id_TableauHebdomadaire FROM Journee, Contenir
+                                       WHERE NumAnnee = EXTRACT(YEAR FROM v_dateDimanche)
+                                         AND NumMois = EXTRACT(MONTH FROM v_dateDimanche)
+                                         AND NumJour = EXTRACT(DAY FROM v_dateDimanche)
+                                         AND Journee.Id_Journee = Contenir.Id_Journee);
+
+   
+   DELETE FROM Composer WHERE Id_Journee IN (SELECT Id_Journee FROM Contenir WHERE Id_TableauHebdomadaire = v_id_tableau);
+	
+   
+	for idJournee in (select Id_Journee from Contenir where Id_TableauHebdomadaire = v_id_tableau) LOOP
+   		DELETE FROM Contenir WHERE Id_TableauHebdomadaire = v_id_tableau;
+   		DELETE FROM TableauHebdomadaire WHERE Id_TableauHebdomadaire = v_id_tableau;
+   		DELETE FROM Journee WHERE Id_Journee = idJournee.Id_Journee;
+	end Loop;
+END SuppressionSemaine;
+
+
+CREATE OR REPLACE PROCEDURE AjoutActiviteCalendrier(p_activite VARCHAR2, dateActivite DATE, trancheHoraire VARCHAR2) AS
+    v_idJournee INT;
+    v_idHoraire INT;
+	v_idActivite INT;
+begin
+    SELECT Id_Journee into v_idJournee FROM Journee where NumAnnee = EXTRACT(YEAR FROM dateActivite)
+     AND NumMois = EXTRACT(MONTH FROM dateActivite)
+     AND NumJour = EXTRACT(DAY FROM dateActivite);
+
+	select Id_Horaire into v_idHoraire from TrancheHoraire where NomHoraire = trancheHoraire;
+
+	if p_activite is null then
+        v_idActivite := 1;
+    else
+		select Id_Activite into v_idActivite from Activite where NomActivite = p_activite;
+    end if;
+
+    INSERT INTO Composer (Id_Journee, Id_Horaire, Id_Activite) values (v_idJournee, v_idHoraire, v_idActivite);
+end AjoutActiviteCalendrier;
+
+
+CREATE OR REPLACE PROCEDURE SuppressionActiviteCalendrier(p_activite VARCHAR2, dateActivite DATE, trancheHoraire VARCHAR2) AS
+    v_idJournee INT;
+    v_idHoraire INT;
+	v_idActivite INT;
+begin
+    SELECT Id_Journee into v_idJournee FROM Journee where NumAnnee = EXTRACT(YEAR FROM dateActivite)
+     AND NumMois = EXTRACT(MONTH FROM dateActivite)
+     AND NumJour = EXTRACT(DAY FROM dateActivite);
+
+	select Id_Horaire into v_idHoraire from TrancheHoraire where NomHoraire = trancheHoraire;
+
+	if p_activite is null then
+        v_idActivite := 1;
+    else
+		select Id_Activite into v_idActivite from Activite where NomActivite = p_activite;
+    end if;
+
+    DELETE FROM Composer WHERE Id_Journee = v_idJournee and Id_Horaire = v_idHoraire and Id_Activite = v_idActivite;
+end SuppressionActiviteCalendrier;
+
+
+CREATE OR REPLACE PROCEDURE ModifActiviteCalendrier(p_activite VARCHAR2, dateActivite DATE, trancheHoraire VARCHAR2) AS
+    v_idJournee INT;
+    v_idHoraire INT;
+	v_idActivite INT;
+begin
+    SELECT Id_Journee into v_idJournee FROM Journee where NumAnnee = EXTRACT(YEAR FROM dateActivite)
+     AND NumMois = EXTRACT(MONTH FROM dateActivite)
+     AND NumJour = EXTRACT(DAY FROM dateActivite);
+
+	select Id_Horaire into v_idHoraire from TrancheHoraire where NomHoraire = trancheHoraire;
+
+	if p_activite is null then
+        v_idActivite := 1;
+    else
+		select Id_Activite into v_idActivite from Activite where NomActivite = p_activite;
+    end if;
+
+    UPDATE Composer SET Id_Activite = v_idActivite WHERE Id_Journee = v_idJournee and Id_Horaire = v_idHoraire;
+end ModifActiviteCalendrier;
+
+
+CREATE OR REPLACE PROCEDURE AffichageSemaine(p_dateLundi DATE) AS
+   v_id_tableau NUMBER;
+   v_dateDimanche DATE;
+
+	v_activite1 VARCHAR(50);
+	v_activite2 VARCHAR(50);
+	v_activite3 VARCHAR(50);
+	v_activite4 VARCHAR(50);
+BEGIN
+    v_dateDimanche := p_dateLundi + 6;
+    
+   
+   SELECT Id_TableauHebdomadaire INTO v_id_tableau
+   FROM Journee, Contenir
+   WHERE NumAnnee = EXTRACT(YEAR FROM p_dateLundi)
+     AND NumMois = EXTRACT(MONTH FROM p_dateLundi)
+     AND NumJour = EXTRACT(DAY FROM p_dateLundi)
+     AND Journee.Id_Journee = Contenir.Id_Journee
+     AND Id_TableauHebdomadaire in (SELECT Id_TableauHebdomadaire FROM Journee, Contenir
+                                       WHERE NumAnnee = EXTRACT(YEAR FROM v_dateDimanche)
+                                         AND NumMois = EXTRACT(MONTH FROM v_dateDimanche)
+                                         AND NumJour = EXTRACT(DAY FROM v_dateDimanche)
+                                         AND Journee.Id_Journee = Contenir.Id_Journee);
+
+	For Jour IN (Select Journee.* from Journee, Contenir where Journee.Id_Journee = Contenir.Id_Journee and Contenir.Id_TableauHebdomadaire = v_id_tableau) LOOP
+        BEGIN
+        	select Activite.NomActivite into v_activite1 from Activite, Composer where Composer.Id_Journee = Jour.Id_Journee and Composer.Id_Horaire = 1 and Composer.Id_Activite = Activite.Id_Activite;
+        EXCEPTION
+          WHEN NO_DATA_FOUND THEN
+            v_activite1 := 'Libre';
+        END;
+        BEGIN
+        	select Activite.NomActivite into v_activite2 from Activite, Composer where Composer.Id_Journee = Jour.Id_Journee and Composer.Id_Horaire = 2 and Composer.Id_Activite = Activite.Id_Activite;
+        EXCEPTION
+          WHEN NO_DATA_FOUND THEN
+            v_activite2 := 'Libre';
+        END;
+        BEGIN
+        	select Activite.NomActivite into v_activite3 from Activite, Composer where Composer.Id_Journee = Jour.Id_Journee and Composer.Id_Horaire = 3 and Composer.Id_Activite = Activite.Id_Activite;
+        EXCEPTION
+          WHEN NO_DATA_FOUND THEN
+            v_activite3 := 'Libre';
+        END;
+        BEGIN
+        	select Activite.NomActivite into v_activite4 from Activite, Composer where Composer.Id_Journee = Jour.Id_Journee and Composer.Id_Horaire = 4 and Composer.Id_Activite = Activite.Id_Activite;
+        EXCEPTION
+          WHEN NO_DATA_FOUND THEN
+            v_activite4 := 'Libre';
+        END;
+		DBMS_OUTPUT.PUT_LINE(Jour.NumJour || '/' ||Jour.NumMois || '/' ||Jour.NumAnnee || ' : ' || v_activite1 || ' | ' || v_activite2 || ' | ' || v_activite3 || ' | ' || v_activite4);
+    END LOOP; 
+end AffichageSemaine;
+
+
+
+
+--Ne fonctionne pas
+
+CREATE OR REPLACE TRIGGER SuppressionActivitesSemaine
+AFTER INSERT ON Journee
+FOR EACH ROW
+DECLARE
+    v_dateLundiSemainePrecedente DATE;
+	v_idActivite INT;
+BEGIN
+    -- Calcul de la date du lundi de la semaine précédente
+    --v_dateLundiSemainePrecedente := :new.NumJour - TO_NUMBER(TO_CHAR(:new.NumJour, 'D')) + 1 - 7;
+    v_dateLundiSemainePrecedente := TO_DATE(:new.NumJour || '/' || :new.NumMois || '/' || :new.NumAnnee, 'DD/MM/YYYY') - 7;
+    -- Suppression des activités planifiées pour la semaine précédente
+    for m_activite in (
+        Select Activite.NomActivite 
+        FROM Composer, Activite 
+        WHERE Composer.Id_Journee IN (
+            SELECT Id_Journee
+            FROM :new
+            WHERE NumAnnee = EXTRACT(YEAR FROM v_dateLundiSemainePrecedente)
+              AND NumMois = EXTRACT(MONTH FROM v_dateLundiSemainePrecedente)
+              AND NumJour >= EXTRACT(DAY FROM v_dateLundiSemainePrecedente)
+              AND NumJour <= EXTRACT(DAY FROM v_dateLundiSemainePrecedente) + 6
+        ) 
+        AND Composer.Id_Activite = Activite.Id_Activite
+    ) 
+    LOOP
+        SuppressionActivite(m_activite.NomActivite);
+	END LOOP;
+	--SuppressionSemaine(v_dateLundiSemainePrecedente);
+END SuppressionActivitesSemaine;
+
+
+
+
+
